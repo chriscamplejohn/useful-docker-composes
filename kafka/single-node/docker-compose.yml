@@ -1,0 +1,31 @@
+# See https://github.com/wurstmeister/kafka-docker/wiki/Connectivity for details on connectivity when using Kafka in docker
+version: "3"
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      # Had to call the internal docker listener PLAINTEXT so that schema registry works!!
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092, LISTENER_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092, LISTENER_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,LISTENER_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  schema-registry:
+    image: confluentinc/cp-schema-registry:5.1.0
+    depends_on:
+      - kafka
+      - zookeeper
+    environment:
+          SCHEMA_REGISTRY_HOST_NAME: schema-registry
+          SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:2181
+          SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+    ports:
+      - "8081:8081"
